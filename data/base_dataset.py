@@ -91,8 +91,11 @@ def default_transform(grayscale=False, convert=True):
     return transforms.Compose(transform_list)
 
 
-def default_crop_transform(grayscale=False, convert=True):
+def default_resize_transform(opt, grayscale=False, convert=True):
     transform_list = []
+    if "resize" in opt.preprocess:
+        osize = [opt.load_size, opt.load_size]
+        transform_list.append(transforms.Resize(osize, Image.ANTIALIAS))
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
     if convert:
