@@ -46,7 +46,7 @@ import torch
 from data.base_dataset import default_transform
 
 
-if __name__ == '__main__':
+def test_red_seal():
     opt = TestOptions().parse()  # get test options
     # hard-code some parameters for test
     opt.num_threads = 0   # test code only supports num_threads = 0
@@ -94,3 +94,46 @@ if __name__ == '__main__':
         out_img_path = os.path.join(res_img_dir, os.path.basename(img_path))
         image_pil.save(out_img_path)
 
+
+def test_real_dataset():
+    opt = TestOptions().parse()  # get test options
+    # hard-code some parameters for test
+    opt.num_threads = 0   # test code only supports num_threads = 0
+    opt.batch_size = 1    # test code only supports batch_size = 1
+    opt.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
+    opt.no_flip = True    # no flip; comment this line if results on flipped images are needed.
+    opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
+    opt.name = "document_pix2pix_best"
+    opt.model = "pix2pix"
+    opt.netG = "unet_256"
+    opt.direction = "AtoB"
+    opt.norm = "batch"
+    model = create_model(opt)      # create a model given opt.model and other options
+    model.setup(opt)               # regular setup: load and print networks; create schedulers
+    if opt.eval:
+        model.eval()
+    img_path = "/data/zhoubingcheng/signet_testdata/testimgs/39b5e538-18c0-11eb-b96f-02420a019fc9_page10.jpeg"
+    res_img_dir = "test/output2"
+    os.makedirs(res_img_dir, exist_ok=True)
+    img_path_list = [img_path]
+    import time
+    for img_path in img_path_list:
+        img = Image.open(img_path).convert("RGB")
+        w, h = img.size
+        a_img = img.crop((0, 0, 1024, 1024))
+        t0 = time.time()
+        transform = default_transform()
+        A = transform(a_img)
+        A = torch.unsqueeze(A, dim=0)
+        A = A.to(torch.device("cuda:0"))
+        fake_B = model.netG(A)
+        res_B = tensor2im(fake_B)
+        image_pil = Image.fromarray(res_B)
+        print("cost:{}".format(time.time() - t0))
+        out_img_path = os.path.join(res_img_dir, os.path.basename(img_path))
+        image_pil.save(out_img_path)
+
+
+if __name__ == '__main__':
+    # test_red_seal()
+    test_real_dataset()

@@ -13,7 +13,7 @@ import sys, os
 if "GS_COMMAND" in os.environ:
     GS = os.environ["GS_COMMAND"]
 else:
-    GS = "gs"
+    GS = "/data/zhoubingcheng/tools/ghostscript-9.50/bin/gs"
 
 
 def pdf2img(pdf_file, prefix, dpi=320):

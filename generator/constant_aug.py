@@ -86,20 +86,20 @@ seq_doc_noise = iaa.Sequential(
             0.3,
             iaa.WithBrightnessChannels(iaa.Add((-40, 40))),
         ),
-        iaa.Sometimes(
-            0.3,
-            iaa.OneOf(iaa.Sequential([
-                        iaa.AdditiveGaussianNoise(scale=(0, 0.01*255), per_channel=0.5),
-                        iaa.SaltAndPepper(0.01)]))
-        ),
+        # iaa.Sometimes(
+        #     0.3,
+        #     iaa.OneOf(iaa.Sequential([
+        #                 iaa.AdditiveGaussianNoise(scale=(0, 0.01*255), per_channel=0.5),
+        #                 iaa.SaltAndPepper(0.01)]))
+        # ),
         iaa.Sometimes(
             0.5,
             iaa.Add((-10, 10), per_channel=0.5),
         ),
-        iaa.Sometimes(
-            0.5,
-            iaa.Dropout(p=(0, 0.05))
-        ),
+        # iaa.Sometimes(
+        #     0.5,
+        #     iaa.Dropout(p=(0, 0.05))
+        # ),
         # iaa.JpegCompression(compression=(80, 99))
     ],
     random_order=True)

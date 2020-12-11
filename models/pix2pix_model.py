@@ -32,8 +32,8 @@ class Pix2PixModel(BaseModel):
         parser.set_defaults(norm='batch', netG='unet_256', dataset_mode='aligned')
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
-            parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
-
+            parser.add_argument('--lambda_L1', type=float, default=20.0, help='weight for L1 loss')
+            parser.add_argument('--lambda_L2', type=float, default=100.0, help='weight local for L1 loss')
         return parser
 
     def __init__(self, opt):
@@ -81,6 +81,13 @@ class Pix2PixModel(BaseModel):
         AtoB = self.opt.direction == 'AtoB'
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
+        self.crop_box = input['crop_box']
+        local_B_list = []
+        for crop_box in self.crop_box[0, :, :]:
+            x0, y0, x1, y1 = crop_box
+            local_B = self.real_B[:, :, x0:x1, y0:y1]
+            local_B_list.append(local_B)
+        self.local_B = torch.cat(local_B_list, dim=0)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
     def forward(self):
@@ -108,7 +115,15 @@ class Pix2PixModel(BaseModel):
         pred_fake = self.netD(fake_AB)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
-        self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
+        local_fake_B_list = []
+        for crop_box in self.crop_box[0, :, :]:
+            x0, y0, x1, y1 = crop_box
+            local_fake_B = self.fake_B[:, :, x0:x1, y0:y1]
+            local_fake_B_list.append(local_fake_B)
+        self.local_fake_B = torch.cat(local_fake_B_list, dim=0)
+        self.local_loss_G_L1 = self.criterionL1(self.local_fake_B, self.local_B) * self.opt.lambda_L2
+        self.global_loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
+        self.loss_G_L1 = self.local_loss_G_L1 + self.global_loss_G_L1
         # combine loss and calculate gradients
         self.loss_G = self.loss_G_GAN + self.loss_G_L1
         self.loss_G.backward()
